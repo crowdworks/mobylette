@@ -33,7 +33,7 @@ module Mobylette
       helper_method :is_mobile_view?
       helper_method :request_device?
 
-      before_filter :handle_mobile
+      before_action :handle_mobile
 
       cattr_accessor :mobylette_options
       @@mobylette_options = Hash.new

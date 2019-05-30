@@ -39,13 +39,19 @@ module Mobylette
       # Private: finds the right template on the filesystem,
       #         using fallback if needed
       #
-      def find_templates(name, prefix, partial, details)
+      def find_templates(name, prefix, partial, details, outside_app_allowed = nil)
         # checks if the format has a fallback chain
         if @fallback_formats.has_key?(details[:formats].first)
           details = details.dup
           details[:formats] = Array.wrap(@fallback_formats[details[:formats].first]) 
         end
-        super(name, prefix, partial, details)
+
+        if outside_app_allowed.nil?
+          # Consider the backward compatibility with older Rails
+          super(name, prefix, partial, details)
+        else
+          super(name, prefix, partial, details, outside_app_allowed)
+        end
       end
 
       # Helper for building query glob string based on resolver's pattern.
@@ -58,8 +64,12 @@ module Mobylette
         partial = escape_entry(path.partial? ? "_#{path.name}" : path.name)
         query.gsub!(/\:action/, partial)
 
-        details.each do |ext, variants|
-          query.gsub!(/\:#{ext}/, "{#{variants.compact.uniq.join(',')}}")
+        details.each do |ext, candidates|
+          if ext == :variants && candidates == :any
+            query.gsub!(/:#{ext}/, "*")
+          else
+            query.gsub!(/:#{ext}/, "{#{candidates.compact.uniq.join(',')}}")
+          end
         end
 
         query.gsub!(/\:path/, "#{@paths.compact.uniq.join(',')}")
